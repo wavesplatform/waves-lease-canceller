@@ -57,12 +57,14 @@ func run() error {
 	var (
 		nodeURL     string
 		accountSK   string
+		accountPK   string
 		dryRun      bool
 		showHelp    bool
 		showVersion bool
 	)
 	flag.StringVar(&nodeURL, "node-api", "http://localhost:6869", "Node's REST API URL")
 	flag.StringVar(&accountSK, "account-sk", "", "Base58 encoded private key of the account")
+	flag.StringVar(&accountPK, "account-pk", "", "Base58 encoded public key of the account")
 	flag.BoolVar(&dryRun, "dry-run", false, "Test execution without creating real transactions on blockchain")
 	flag.BoolVar(&showHelp, "help", false, "Show usage information and exit")
 	flag.BoolVar(&showVersion, "version", false, "Print version information and quit")
@@ -83,6 +85,9 @@ func run() error {
 	if accountSK == "" || len(strings.Fields(accountSK)) > 1 {
 		log.Printf("[ERROR] Invalid generating account private key '%s'", accountSK)
 		return errInvalidParameters
+	}
+	if accountPK == "" || len(strings.Fields(accountPK)) > 1 {
+		log.Print("[INFO] No different account public key is given")
 	}
 	if dryRun {
 		log.Print("[INFO] DRY-RUN: No actual transactions will be created")
@@ -118,6 +123,19 @@ func run() error {
 		log.Printf("[ERROR] Failed to parse account's private key: %v", err)
 		return errFailure
 	}
+	if accountPK != "" {
+		pk, err = crypto.NewPublicKeyFromBase58(accountPK)
+		if err != nil {
+			log.Printf("[ERROR] Failed to parse additional public key: %v", err)
+			return errFailure
+		}
+		addr, err = proto.NewAddressFromPublicKey(scheme, pk)
+		if err != nil {
+			log.Printf("[ERROR] Failed to parse account's address: %v", err)
+			return errFailure
+		}
+	}
+	log.Printf("[INFO] Account's public key: %s", pk.String())
 	log.Printf("[INFO] Account's address: %s", addr.String())
 
 	// 4. Get active leasing transactions
